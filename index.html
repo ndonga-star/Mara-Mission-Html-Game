@@ -1,0 +1,941 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mission Mara — Ukwenza VR Learning Journey</title>
+<link href="https://fonts.googleapis.com/css2?family=Fredoka+One&family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --purple: #4B1FA8;
+    --purple-dk: #2D0F6E;
+    --teal: #00A99D;
+    --teal-lt: #E0F7F5;
+    --gold: #F5A623;
+    --gold-lt: #FEF6E7;
+    --red: #E8403A;
+    --green: #27AE60;
+    --white: #FFFFFF;
+    --off: #F7F4FF;
+    --dark: #1A1A2E;
+    --mid: #555577;
+    --muted: #9999BB;
+    --r: 16px;
+    --shadow: 0 8px 32px rgba(75,31,168,0.13);
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Nunito', sans-serif;
+    background: var(--purple-dk);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 0;
+    overflow-x: hidden;
+  }
+
+  /* ── Stars background ── */
+  body::before {
+    content: '';
+    position: fixed; inset: 0;
+    background:
+      radial-gradient(ellipse at 20% 20%, rgba(0,169,157,0.15) 0%, transparent 50%),
+      radial-gradient(ellipse at 80% 80%, rgba(245,166,35,0.10) 0%, transparent 50%);
+    pointer-events: none; z-index: 0;
+  }
+
+  #app {
+    position: relative; z-index: 1;
+    width: 100%; max-width: 780px;
+    min-height: 100vh;
+    display: flex; flex-direction: column;
+  }
+
+  /* ── Top bar ── */
+  #topbar {
+    background: rgba(45,15,110,0.95);
+    backdrop-filter: blur(10px);
+    border-bottom: 2px solid rgba(0,169,157,0.3);
+    padding: 12px 20px;
+    display: flex; align-items: center; justify-content: space-between;
+    position: sticky; top: 0; z-index: 100;
+  }
+  .brand { font-family: 'Fredoka One', cursive; color: var(--teal); font-size: 1.1rem; letter-spacing: 1px; }
+  .brand span { color: var(--gold); }
+
+  #timer-wrap { display: flex; align-items: center; gap: 8px; }
+  #timer-icon { font-size: 1.2rem; }
+  #timer {
+    font-family: 'Fredoka One', cursive;
+    font-size: 1.3rem; color: var(--gold);
+    min-width: 52px; text-align: right;
+  }
+  #timer.urgent { color: var(--red); animation: pulse 1s infinite; }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.5} }
+
+  #score-wrap { display: flex; align-items: center; gap: 6px; }
+  #score-label { font-size: 0.75rem; color: var(--muted); font-weight: 700; letter-spacing: 1px; text-transform: uppercase; }
+  #score-val { font-family: 'Fredoka One', cursive; font-size: 1.3rem; color: var(--white); }
+
+  /* ── Progress bar ── */
+  #progress-outer {
+    background: rgba(255,255,255,0.08);
+    height: 6px; width: 100%;
+  }
+  #progress-inner {
+    background: linear-gradient(90deg, var(--teal), var(--gold));
+    height: 6px; transition: width 0.6s ease;
+  }
+
+  /* ── Screens ── */
+  .screen {
+    flex: 1; display: none; flex-direction: column;
+    padding: 24px 20px 32px;
+    animation: fadeIn 0.4s ease;
+  }
+  .screen.active { display: flex; }
+  @keyframes fadeIn { from{opacity:0;transform:translateY(12px)} to{opacity:1;transform:none} }
+
+  /* ── Cards ── */
+  .card {
+    background: rgba(255,255,255,0.06);
+    border: 1px solid rgba(255,255,255,0.10);
+    border-radius: var(--r);
+    padding: 22px;
+    margin-bottom: 16px;
+    backdrop-filter: blur(6px);
+  }
+  .card-white {
+    background: var(--white);
+    border-radius: var(--r);
+    padding: 22px;
+    margin-bottom: 16px;
+    box-shadow: var(--shadow);
+  }
+
+  /* ── Typography ── */
+  .story-title {
+    font-family: 'Fredoka One', cursive;
+    font-size: 2rem; color: var(--gold);
+    line-height: 1.1; margin-bottom: 8px;
+    text-shadow: 0 2px 12px rgba(245,166,35,0.4);
+  }
+  .story-sub {
+    font-size: 0.9rem; color: var(--teal);
+    font-weight: 700; letter-spacing: 2px;
+    text-transform: uppercase; margin-bottom: 20px;
+  }
+  .story-body {
+    font-size: 1.05rem; color: rgba(255,255,255,0.88);
+    line-height: 1.7; margin-bottom: 16px;
+  }
+  .story-body strong { color: var(--gold); }
+  .story-body em { color: var(--teal); font-style: normal; font-weight: 700; }
+
+  .scene-label {
+    font-size: 0.72rem; font-weight: 800; letter-spacing: 2.5px;
+    text-transform: uppercase; color: var(--teal);
+    margin-bottom: 6px;
+  }
+  .question-text {
+    font-family: 'Fredoka One', cursive;
+    font-size: 1.35rem; color: var(--dark);
+    line-height: 1.3; margin-bottom: 6px;
+  }
+  .question-hint {
+    font-size: 0.85rem; color: var(--mid);
+    font-weight: 600; margin-bottom: 18px;
+  }
+
+  /* ── Character avatar ── */
+  .avatar-row {
+    display: flex; align-items: center; gap: 14px;
+    margin-bottom: 20px;
+  }
+  .avatar {
+    width: 64px; height: 64px; border-radius: 50%;
+    background: linear-gradient(135deg, var(--teal), var(--purple));
+    display: flex; align-items: center; justify-content: center;
+    font-size: 2rem; flex-shrink: 0;
+    border: 3px solid var(--gold);
+    box-shadow: 0 0 20px rgba(245,166,35,0.3);
+  }
+  .avatar-info { flex: 1; }
+  .avatar-name { font-weight: 800; color: var(--white); font-size: 1rem; }
+  .avatar-role { font-size: 0.82rem; color: var(--teal); font-weight: 600; }
+
+  /* ── Speech bubble ── */
+  .bubble {
+    background: rgba(0,169,157,0.15);
+    border: 1.5px solid rgba(0,169,157,0.4);
+    border-radius: 0 var(--r) var(--r) var(--r);
+    padding: 14px 18px;
+    font-size: 1rem; color: rgba(255,255,255,0.92);
+    line-height: 1.6;
+    position: relative;
+    margin-bottom: 20px;
+  }
+  .bubble::before {
+    content: '';
+    position: absolute; top: -1px; left: -14px;
+    border: 7px solid transparent;
+    border-right-color: rgba(0,169,157,0.4);
+    border-top-color: rgba(0,169,157,0.4);
+  }
+
+  /* ── Answer input ── */
+  .answer-row {
+    display: flex; gap: 10px; align-items: stretch;
+    margin-bottom: 14px;
+  }
+  .answer-input {
+    flex: 1; padding: 14px 18px;
+    font-family: 'Fredoka One', cursive; font-size: 1.6rem;
+    color: var(--purple-dk); text-align: center;
+    border: 3px solid rgba(75,31,168,0.2);
+    border-radius: var(--r); outline: none;
+    transition: border-color 0.2s, box-shadow 0.2s;
+    background: var(--white);
+  }
+  .answer-input:focus {
+    border-color: var(--teal);
+    box-shadow: 0 0 0 4px rgba(0,169,157,0.15);
+  }
+  .answer-input.correct {
+    border-color: var(--green);
+    background: #F0FFF4;
+    animation: correctPop 0.4s ease;
+  }
+  .answer-input.wrong {
+    border-color: var(--red);
+    background: #FFF5F5;
+    animation: shake 0.4s ease;
+  }
+  @keyframes correctPop {
+    0%{transform:scale(1)} 40%{transform:scale(1.06)} 100%{transform:scale(1)}
+  }
+  @keyframes shake {
+    0%,100%{transform:translateX(0)} 20%,60%{transform:translateX(-6px)} 40%,80%{transform:translateX(6px)}
+  }
+
+  /* ── Buttons ── */
+  .btn {
+    padding: 14px 28px; border: none; border-radius: var(--r);
+    font-family: 'Nunito', sans-serif; font-size: 1rem; font-weight: 800;
+    cursor: pointer; transition: transform 0.15s, box-shadow 0.15s;
+    letter-spacing: 0.3px;
+  }
+  .btn:active { transform: scale(0.97); }
+  .btn-primary {
+    background: linear-gradient(135deg, var(--teal), #008F85);
+    color: var(--white);
+    box-shadow: 0 4px 18px rgba(0,169,157,0.4);
+    width: 100%;
+  }
+  .btn-primary:hover { box-shadow: 0 6px 24px rgba(0,169,157,0.5); transform: translateY(-1px); }
+  .btn-gold {
+    background: linear-gradient(135deg, var(--gold), #C47D0A);
+    color: var(--white);
+    box-shadow: 0 4px 18px rgba(245,166,35,0.4);
+    width: 100%;
+  }
+  .btn-gold:hover { transform: translateY(-1px); }
+  .btn-ghost {
+    background: transparent;
+    border: 2px solid rgba(255,255,255,0.25);
+    color: rgba(255,255,255,0.7);
+    width: 100%;
+  }
+  .btn-submit {
+    background: linear-gradient(135deg, var(--purple), var(--purple-dk));
+    color: var(--white);
+    box-shadow: 0 4px 18px rgba(75,31,168,0.4);
+    padding: 15px 28px; min-width: 120px;
+    border-radius: var(--r); flex-shrink: 0;
+  }
+
+  /* ── Feedback banner ── */
+  .feedback {
+    border-radius: var(--r); padding: 14px 18px;
+    font-size: 1rem; font-weight: 700; display: none;
+    margin-bottom: 14px; align-items: center; gap: 10px;
+  }
+  .feedback.show { display: flex; animation: fadeIn 0.3s ease; }
+  .feedback.correct-fb { background: #ECFDF5; border: 2px solid var(--green); color: #155724; }
+  .feedback.wrong-fb { background: #FFF5F5; border: 2px solid var(--red); color: #7B2020; }
+  .feedback-icon { font-size: 1.4rem; flex-shrink: 0; }
+
+  /* ── Choice buttons ── */
+  .choices { display: flex; flex-direction: column; gap: 10px; margin-bottom: 16px; }
+  .choice-btn {
+    padding: 14px 20px; border-radius: var(--r);
+    background: rgba(255,255,255,0.07);
+    border: 2px solid rgba(255,255,255,0.15);
+    color: rgba(255,255,255,0.9); font-size: 1rem;
+    font-family: 'Nunito', sans-serif; font-weight: 700;
+    cursor: pointer; text-align: left;
+    transition: all 0.2s; display: flex; align-items: center; gap: 12px;
+  }
+  .choice-btn:hover { background: rgba(0,169,157,0.2); border-color: var(--teal); color: var(--white); }
+  .choice-btn.selected-correct { background: rgba(39,174,96,0.2); border-color: var(--green); color: #B7F5C5; }
+  .choice-btn.selected-wrong { background: rgba(232,64,58,0.2); border-color: var(--red); color: #FFB3B0; }
+  .choice-letter {
+    width: 30px; height: 30px; border-radius: 50%;
+    background: rgba(255,255,255,0.1);
+    display: flex; align-items: center; justify-content: center;
+    font-family: 'Fredoka One', cursive; font-size: 0.95rem;
+    flex-shrink: 0;
+  }
+
+  /* ── Stars / XP ── */
+  .xp-badge {
+    display: inline-flex; align-items: center; gap: 5px;
+    background: var(--gold-lt); border: 2px solid var(--gold);
+    border-radius: 20px; padding: 4px 12px;
+    font-weight: 800; color: var(--purple-dk); font-size: 0.9rem;
+  }
+  .stars-row { display: flex; gap: 4px; font-size: 1.6rem; margin: 8px 0; }
+
+  /* ── Scene divider ── */
+  .scene-divider {
+    display: flex; align-items: center; gap: 12px;
+    margin: 20px 0 16px;
+  }
+  .scene-divider-line { flex: 1; height: 1px; background: rgba(0,169,157,0.3); }
+  .scene-divider-icon { font-size: 1.2rem; }
+
+  /* ── Field journal ── */
+  .journal {
+    background: var(--gold-lt); border: 2px solid var(--gold);
+    border-radius: var(--r); padding: 18px 20px;
+    margin-bottom: 16px;
+  }
+  .journal-title { font-family: 'Fredoka One', cursive; color: var(--purple-dk); font-size: 1.1rem; margin-bottom: 10px; }
+  .journal-entry { font-size: 0.95rem; color: var(--dark); line-height: 1.6; }
+
+  /* ── Results ── */
+  .result-circle {
+    width: 130px; height: 130px; border-radius: 50%;
+    background: linear-gradient(135deg, var(--purple), var(--teal));
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    margin: 0 auto 20px;
+    box-shadow: 0 0 40px rgba(0,169,157,0.4);
+    border: 4px solid var(--gold);
+  }
+  .result-num {
+    font-family: 'Fredoka One', cursive;
+    font-size: 2.8rem; color: var(--white); line-height: 1;
+  }
+  .result-label { font-size: 0.75rem; color: rgba(255,255,255,0.7); font-weight: 700; letter-spacing: 1px; }
+
+  .medal { font-size: 4rem; text-align: center; display: block; margin-bottom: 8px; }
+  .rank-title {
+    font-family: 'Fredoka One', cursive;
+    font-size: 1.8rem; color: var(--gold); text-align: center;
+    margin-bottom: 6px;
+  }
+  .rank-sub { font-size: 1rem; color: rgba(255,255,255,0.75); text-align: center; margin-bottom: 24px; }
+
+  .result-breakdown {
+    display: grid; grid-template-columns: 1fr 1fr;
+    gap: 10px; margin-bottom: 20px;
+  }
+  .rb-item {
+    background: rgba(255,255,255,0.07);
+    border-radius: 12px; padding: 14px;
+    text-align: center;
+  }
+  .rb-val { font-family: 'Fredoka One', cursive; font-size: 1.5rem; color: var(--teal); }
+  .rb-lbl { font-size: 0.78rem; color: var(--muted); font-weight: 700; text-transform: uppercase; letter-spacing: 1px; margin-top: 2px; }
+
+  /* ── Intro splash ── */
+  .splash-hero {
+    text-align: center; padding: 24px 0 12px;
+  }
+  .splash-emoji { font-size: 5rem; display: block; margin-bottom: 12px;
+    animation: float 3s ease-in-out infinite;
+  }
+  @keyframes float { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-10px)} }
+
+  .tag-row { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 20px; }
+  .tag {
+    padding: 4px 12px; border-radius: 20px;
+    font-size: 0.78rem; font-weight: 800; letter-spacing: 0.5px;
+    text-transform: uppercase;
+  }
+  .tag-purple { background: rgba(75,31,168,0.3); color: #C5AAFF; border: 1px solid rgba(75,31,168,0.5); }
+  .tag-teal { background: rgba(0,169,157,0.2); color: var(--teal); border: 1px solid rgba(0,169,157,0.4); }
+  .tag-gold { background: rgba(245,166,35,0.15); color: var(--gold); border: 1px solid rgba(245,166,35,0.4); }
+
+  /* ── Number pad (optional helper) ── */
+  .numpad { display: grid; grid-template-columns: repeat(3,1fr); gap: 8px; margin-bottom: 14px; }
+  .np-btn {
+    padding: 12px; border-radius: 10px;
+    background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.12);
+    color: var(--white); font-family: 'Fredoka One', cursive; font-size: 1.2rem;
+    cursor: pointer; transition: background 0.15s;
+  }
+  .np-btn:hover { background: rgba(0,169,157,0.25); }
+  .np-btn.np-clear { color: var(--red); }
+  .np-btn.np-back { color: var(--gold); }
+
+  /* ── Lives ── */
+  #lives { display: flex; gap: 4px; }
+  .life { font-size: 1.1rem; transition: filter 0.3s; }
+  .life.lost { filter: grayscale(1) opacity(0.3); }
+
+  /* responsive */
+  @media(max-width:500px) {
+    .story-title { font-size: 1.6rem; }
+    .question-text { font-size: 1.15rem; }
+    .answer-input { font-size: 1.3rem; }
+  }
+</style>
+</head>
+<body>
+<div id="app">
+
+  <!-- TOP BAR -->
+  <div id="topbar">
+    <div class="brand">UKWENZA <span>VR</span></div>
+    <div id="lives">
+      <span class="life" id="l1">❤️</span>
+      <span class="life" id="l2">❤️</span>
+      <span class="life" id="l3">❤️</span>
+    </div>
+    <div id="score-wrap">
+      <span id="score-label">XP</span>
+      <span id="score-val">0</span>
+    </div>
+    <div id="timer-wrap">
+      <span id="timer-icon">⏱️</span>
+      <span id="timer">40:00</span>
+    </div>
+  </div>
+  <div id="progress-outer"><div id="progress-inner" style="width:0%"></div></div>
+
+  <!-- ═══ SCREEN: INTRO ═══ -->
+  <div class="screen active" id="screen-intro">
+    <div class="splash-hero">
+      <span class="splash-emoji">🦁</span>
+      <div class="story-sub">Ukwenza Learning Journey · Year 4</div>
+      <div class="story-title">Mission Mara</div>
+    </div>
+    <div class="card">
+      <div class="tag-row">
+        <span class="tag tag-purple">Mixed Operations</span>
+        <span class="tag tag-teal">Mental Maths</span>
+        <span class="tag tag-gold">40 Minutes</span>
+      </div>
+      <div class="story-body">
+        The <strong>Maasai Mara</strong> is in trouble. A mysterious sickness is spreading through the animal population — and the park rangers need your help to track it down.
+      </div>
+      <div class="story-body">
+        As a <em>Junior Wildlife Investigator</em>, you'll use your mental maths skills to count herds, calculate supplies, track distances, and decode ranger reports.
+      </div>
+      <div class="story-body">
+        The animals are counting on you. 🐘🦒🦓
+      </div>
+    </div>
+    <div class="avatar-row">
+      <div class="avatar">🧑🏾</div>
+      <div class="avatar-info">
+        <div class="avatar-name">You are: Jua</div>
+        <div class="avatar-role">Junior Wildlife Investigator · Mara Research Station</div>
+      </div>
+    </div>
+    <button class="btn btn-gold" onclick="startGame()">🚀 Begin Mission</button>
+  </div>
+
+  <!-- ═══ SCREEN: GAME ═══ -->
+  <div class="screen" id="screen-game">
+    <div id="scene-header" class="scene-label"></div>
+    <div id="story-panel" class="card"></div>
+    <div id="question-panel" class="card-white"></div>
+    <div id="feedback-panel" class="feedback"></div>
+    <div id="action-panel"></div>
+  </div>
+
+  <!-- ═══ SCREEN: RESULTS ═══ -->
+  <div class="screen" id="screen-results">
+    <div style="text-align:center; padding: 16px 0 8px;">
+      <div class="story-sub">Mission Complete</div>
+      <div class="story-title" style="margin-bottom:20px;">Mission Mara</div>
+    </div>
+    <span id="medal" class="medal"></span>
+    <div id="rank-title" class="rank-title"></div>
+    <div id="rank-sub" class="rank-sub"></div>
+    <div class="result-circle">
+      <div class="result-num" id="final-score"></div>
+      <div class="result-label">XP EARNED</div>
+    </div>
+    <div class="result-breakdown">
+      <div class="rb-item"><div class="rb-val" id="res-correct"></div><div class="rb-lbl">Correct</div></div>
+      <div class="rb-item"><div class="rb-val" id="res-total"></div><div class="rb-lbl">Questions</div></div>
+      <div class="rb-item"><div class="rb-val" id="res-time"></div><div class="rb-lbl">Time Left</div></div>
+      <div class="rb-item"><div class="rb-val" id="res-streak"></div><div class="rb-lbl">Best Streak</div></div>
+    </div>
+    <div class="journal" id="journal-summary"></div>
+    <button class="btn btn-primary" onclick="restartGame()">🔁 Play Again</button>
+  </div>
+
+</div>
+
+<script>
+// ═══════════════════════════════════════════════════════
+// DATA — STORY SCENES
+// ═══════════════════════════════════════════════════════
+const scenes = [
+  {
+    id: 0,
+    sceneLabel: "🌅  Scene 1 · Dawn Patrol",
+    story: `The sun is rising over the Mara. Your ranger radio crackles:<br><br>
+      <em>"Jua, we need a herd count before 7am. The wildebeest crossed overnight. Quick — use your field skills!"</em>`,
+    type: "input",
+    question: "You count <strong>347</strong> wildebeest in the north sector and <strong>256</strong> in the south. How many wildebeest are there in total?",
+    hint: "Addition: 347 + 256",
+    answer: 603,
+    xp: 15,
+    feedback_correct: "Brilliant! 603 wildebeest recorded. Ranger Amara adds it to the database. 📋",
+    feedback_wrong: "Not quite. Try adding the hundreds first: 300 + 200 = 500, then 47 + 56 = 103. So 500 + 103 = 603.",
+  },
+  {
+    id: 1,
+    sceneLabel: "🚙  Scene 1 · The Supply Run",
+    story: `Ranger Amara needs to send water to three outposts. She has <strong>840 litres</strong> at base camp.`,
+    type: "input",
+    question: "She uses <strong>275 litres</strong> for the morning patrol. How many litres are left?",
+    hint: "Subtraction: 840 − 275",
+    answer: 565,
+    xp: 15,
+    feedback_correct: "Correct! 565 litres remaining. The patrol can continue safely. 💧",
+    feedback_wrong: "Try counting up from 275 to 840: 275 → 300 (add 25) → 800 (add 500) → 840 (add 40). Total added = 565.",
+  },
+  {
+    id: 2,
+    sceneLabel: "🦒  Scene 2 · The Missing Giraffes",
+    story: `A giraffe family has gone missing from their usual feeding spot. You find tracks leading to <strong>3 different water holes</strong>.`,
+    type: "choice",
+    question: "There are <strong>6 giraffes</strong> at each water hole. Which calculation gives you the total number of giraffes?",
+    hint: "Think multiplication",
+    choices: [
+      { letter: "A", text: "6 + 3 = 9 giraffes" },
+      { letter: "B", text: "6 × 3 = 18 giraffes" },
+      { letter: "C", text: "6 − 3 = 3 giraffes" },
+      { letter: "D", text: "6 ÷ 3 = 2 giraffes" },
+    ],
+    correct: 1,
+    xp: 20,
+    feedback_correct: "Exactly right! 6 × 3 = 18. All giraffes are accounted for! 🦒🦒🦒",
+    feedback_wrong: "When the same number appears multiple times, we multiply. 6 at each of 3 water holes means 6 × 3 = 18.",
+  },
+  {
+    id: 3,
+    sceneLabel: "🦒  Scene 2 · Giraffe Heights",
+    story: `You find the family — all 18 giraffes are safe! Now you need to tag them for tracking. Each vet can tag <strong>6 giraffes per hour</strong>.`,
+    type: "input",
+    question: "If there are <strong>18 giraffes</strong> to tag, how many hours does one vet need?",
+    hint: "Division: 18 ÷ 6",
+    answer: 3,
+    xp: 20,
+    feedback_correct: "Perfect! 18 ÷ 6 = 3 hours. The tagging begins! ✅",
+    feedback_wrong: "Division is sharing equally. 18 giraffes ÷ 6 per hour = 3 hours. Think: 6 × ? = 18.",
+  },
+  {
+    id: 4,
+    sceneLabel: "🐘  Scene 3 · Elephant Emergency",
+    story: `<em>"Jua! We've spotted a sick elephant near the Talek River. We need to calculate how much medicine to bring!"</em><br><br>
+      The medicine comes in boxes of <strong>9 doses</strong> each.`,
+    type: "input",
+    question: "The vet needs <strong>63 doses</strong> for the herd. How many boxes must she take?",
+    hint: "Division: 63 ÷ 9",
+    answer: 7,
+    xp: 20,
+    feedback_correct: "Yes! 63 ÷ 9 = 7 boxes. The vet packs quickly and heads out. 🐘",
+    feedback_wrong: "Try your 9 times table: 9×7 = 63. So 63 ÷ 9 = 7 boxes.",
+  },
+  {
+    id: 5,
+    sceneLabel: "🐘  Scene 3 · Herd Count",
+    story: `At the river, you spot <strong>4 elephant families</strong>. Each family has <strong>8 members</strong>.`,
+    type: "choice",
+    question: "The rangers need the total elephant count. What is 4 × 8?",
+    hint: "Mental multiplication",
+    choices: [
+      { letter: "A", text: "28" },
+      { letter: "B", text: "32" },
+      { letter: "C", text: "36" },
+      { letter: "D", text: "48" },
+    ],
+    correct: 1,
+    xp: 20,
+    feedback_correct: "32! That's right. 4 × 8 = 32 elephants in total. Great counting! 🎉",
+    feedback_wrong: "4 × 8: think of it as 4 groups of 8. 8 + 8 = 16, then 16 + 16 = 32.",
+  },
+  {
+    id: 6,
+    sceneLabel: "🦁  Scene 4 · Lion Territory",
+    story: `The lion pride has been moving into new territory. Ranger Kofi needs to calculate the patrol distance to cover the new area.`,
+    type: "input",
+    question: "Rangers drive <strong>125 km</strong> on Day 1 and <strong>98 km</strong> on Day 2. What is the total distance driven?",
+    hint: "Addition: 125 + 98",
+    answer: 223,
+    xp: 25,
+    feedback_correct: "Superb! 125 + 98 = 223 km covered. The territory is mapped! 🗺️",
+    feedback_wrong: "Try 125 + 100 = 225, then subtract 2 (because we added 2 too many): 225 − 2 = 223.",
+  },
+  {
+    id: 7,
+    sceneLabel: "🦁  Scene 4 · Campfire Rations",
+    story: `Back at camp, it's time to prepare food for the team. There are <strong>56 energy bars</strong> to share equally among <strong>8 rangers</strong>.`,
+    type: "input",
+    question: "How many energy bars does each ranger get?",
+    hint: "Division: 56 ÷ 8",
+    answer: 7,
+    xp: 20,
+    feedback_correct: "Correct! 56 ÷ 8 = 7 bars each. Everyone is happy! 😄",
+    feedback_wrong: "Use your 8 times table: 8 × 7 = 56. So each ranger gets 7 bars.",
+  },
+  {
+    id: 8,
+    sceneLabel: "🔬  Scene 5 · The Laboratory",
+    story: `You've collected data from across the Mara. Now it's time to analyse the final numbers before writing your report.`,
+    type: "choice",
+    question: "In one day, rangers counted <strong>9 × 7</strong> zebras. Which answer is correct?",
+    hint: "9 times table",
+    choices: [
+      { letter: "A", text: "54 zebras" },
+      { letter: "B", text: "63 zebras" },
+      { letter: "C", text: "72 zebras" },
+      { letter: "D", text: "56 zebras" },
+    ],
+    correct: 1,
+    xp: 20,
+    feedback_correct: "Correct! 9 × 7 = 63. Your report is precise! 📊",
+    feedback_wrong: "9 × 7: try 10 × 7 = 70, then subtract one group of 7: 70 − 7 = 63.",
+  },
+  {
+    id: 9,
+    sceneLabel: "📋  Final Scene · The Report",
+    story: `<em>"Jua, you've done an amazing job. One final calculation for your field report…"</em><br><br>
+      Over 5 days, the team drove <strong>the same distance each day</strong>. Total distance: <strong>385 km</strong>.`,
+    type: "input",
+    question: "How many kilometres did they drive each day?",
+    hint: "Division: 385 ÷ 5",
+    answer: 77,
+    xp: 30,
+    feedback_correct: "Outstanding! 385 ÷ 5 = 77 km per day. Your report is complete! 🏆",
+    feedback_wrong: "Try: 5 × 70 = 350. Remainder = 385 − 350 = 35. 35 ÷ 5 = 7. So total = 70 + 7 = 77.",
+  },
+];
+
+// ═══════════════════════════════════════════════════════
+// STATE
+// ═══════════════════════════════════════════════════════
+let state = {
+  current: 0,
+  score: 0,
+  correct: 0,
+  lives: 3,
+  streak: 0,
+  bestStreak: 0,
+  attempts: 0,
+  timerSecs: 40 * 60,
+  timerInterval: null,
+  answered: false,
+};
+
+// ═══════════════════════════════════════════════════════
+// TIMER
+// ═══════════════════════════════════════════════════════
+function startTimer() {
+  state.timerInterval = setInterval(() => {
+    state.timerSecs--;
+    const m = Math.floor(state.timerSecs / 60);
+    const s = state.timerSecs % 60;
+    const el = document.getElementById('timer');
+    el.textContent = `${m}:${s.toString().padStart(2,'0')}`;
+    if (state.timerSecs <= 300) el.classList.add('urgent');
+    if (state.timerSecs <= 0) { clearInterval(state.timerInterval); showResults(); }
+  }, 1000);
+}
+
+function getTimeLeft() {
+  const m = Math.floor(state.timerSecs / 60);
+  const s = state.timerSecs % 60;
+  return `${m}:${s.toString().padStart(2,'0')}`;
+}
+
+// ═══════════════════════════════════════════════════════
+// PROGRESS
+// ═══════════════════════════════════════════════════════
+function updateProgress() {
+  const pct = (state.current / scenes.length) * 100;
+  document.getElementById('progress-inner').style.width = pct + '%';
+  document.getElementById('score-val').textContent = state.score;
+}
+
+function updateLives() {
+  for (let i = 1; i <= 3; i++) {
+    const el = document.getElementById('l' + i);
+    el.classList.toggle('lost', i > state.lives);
+  }
+}
+
+// ═══════════════════════════════════════════════════════
+// SCREENS
+// ═══════════════════════════════════════════════════════
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+}
+
+function startGame() {
+  state = { current:0, score:0, correct:0, lives:3, streak:0, bestStreak:0,
+    attempts: 0, timerSecs:40*60, timerInterval:null, answered:false };
+  updateLives();
+  updateProgress();
+  startTimer();
+  showScreen('screen-game');
+  renderScene(0);
+}
+
+function restartGame() {
+  clearInterval(state.timerInterval);
+  showScreen('screen-intro');
+}
+
+// ═══════════════════════════════════════════════════════
+// RENDER SCENE
+// ═══════════════════════════════════════════════════════
+function renderScene(idx) {
+  if (idx >= scenes.length) { showResults(); return; }
+  const sc = scenes[idx];
+  state.answered = false;
+  state.attempts = 0;
+
+  document.getElementById('scene-header').textContent = sc.sceneLabel;
+
+  // Story panel
+  document.getElementById('story-panel').innerHTML = `
+    <div class="story-body">${sc.story}</div>
+  `;
+
+  // Question panel
+  const qp = document.getElementById('question-panel');
+  if (sc.type === 'input') {
+    qp.innerHTML = `
+      <div class="scene-label">Your Challenge</div>
+      <div class="question-text">${sc.question}</div>
+      <div class="question-hint">💡 Hint: ${sc.hint}</div>
+      <div class="answer-row">
+        <input type="number" class="answer-input" id="answer-field"
+          placeholder="?" inputmode="numeric" autocomplete="off"
+          onkeydown="if(event.key==='Enter')checkInput()">
+        <button class="btn btn-submit" onclick="checkInput()">Check →</button>
+      </div>
+    `;
+    // Numpad
+    const numpadHTML = `
+      <div class="numpad" id="numpad">
+        ${[7,8,9,4,5,6,1,2,3].map(n=>`<button class="np-btn" onclick="numpadPress(${n})">${n}</button>`).join('')}
+        <button class="np-btn np-clear" onclick="numpadClear()">✕</button>
+        <button class="np-btn" onclick="numpadPress(0)">0</button>
+        <button class="np-btn np-back" onclick="numpadBack()">⌫</button>
+      </div>
+    `;
+    qp.innerHTML += numpadHTML;
+    setTimeout(() => { const f = document.getElementById('answer-field'); if(f) f.focus(); }, 100);
+  } else {
+    // Choice
+    const choicesHTML = sc.choices.map((c,i) => `
+      <button class="choice-btn" onclick="checkChoice(${i})" id="choice-${i}">
+        <span class="choice-letter">${c.letter}</span>
+        <span>${c.text}</span>
+      </button>
+    `).join('');
+    qp.innerHTML = `
+      <div class="scene-label">Your Challenge</div>
+      <div class="question-text">${sc.question}</div>
+      <div class="question-hint">💡 ${sc.hint}</div>
+      <div class="choices">${choicesHTML}</div>
+    `;
+  }
+
+  // Clear feedback and action
+  const fb = document.getElementById('feedback-panel');
+  fb.className = 'feedback';
+  fb.innerHTML = '';
+  document.getElementById('action-panel').innerHTML = '';
+
+  updateProgress();
+}
+
+// ═══════════════════════════════════════════════════════
+// NUMPAD
+// ═══════════════════════════════════════════════════════
+function numpadPress(n) {
+  const f = document.getElementById('answer-field');
+  if (!f) return;
+  f.value = (f.value || '') + n;
+}
+function numpadClear() {
+  const f = document.getElementById('answer-field'); if(f) f.value = '';
+}
+function numpadBack() {
+  const f = document.getElementById('answer-field');
+  if (!f) return;
+  f.value = f.value.slice(0,-1);
+}
+
+// ═══════════════════════════════════════════════════════
+// CHECK ANSWERS
+// ═══════════════════════════════════════════════════════
+function checkInput() {
+  if (state.answered) return;
+  const sc = scenes[state.current];
+  const field = document.getElementById('answer-field');
+  const val = parseInt(field.value);
+  if (isNaN(val)) { field.focus(); return; }
+  state.attempts++;
+
+  if (val === sc.answer) {
+    markCorrect(sc, field);
+  } else {
+    markWrong(sc, field);
+  }
+}
+
+function checkChoice(idx) {
+  if (state.answered) return;
+  const sc = scenes[state.current];
+  state.attempts++;
+  const btn = document.getElementById('choice-' + idx);
+
+  if (idx === sc.correct) {
+    btn.classList.add('selected-correct');
+    markCorrect(sc, null);
+  } else {
+    btn.classList.add('selected-wrong');
+    // disable clicked btn
+    btn.onclick = null;
+    markWrong(sc, null);
+  }
+}
+
+function markCorrect(sc, field) {
+  state.answered = true;
+  if (field) field.classList.add('correct');
+
+  // Score
+  const xpEarned = state.attempts === 1 ? sc.xp : Math.max(5, Math.floor(sc.xp * 0.5));
+  state.score += xpEarned;
+  state.correct++;
+  state.streak++;
+  if (state.streak > state.bestStreak) state.bestStreak = state.streak;
+
+  // Feedback
+  const fb = document.getElementById('feedback-panel');
+  fb.className = 'feedback correct-fb show';
+  fb.innerHTML = `<span class="feedback-icon">✅</span>
+    <div>
+      <strong>${sc.feedback_correct}</strong><br>
+      <span class="xp-badge">+${xpEarned} XP</span>
+      ${state.streak > 1 ? `<span class="xp-badge" style="margin-left:6px">🔥 ${state.streak} streak!</span>` : ''}
+    </div>`;
+
+  updateProgress();
+  showNextButton();
+}
+
+function markWrong(sc, field) {
+  state.lives--;
+  state.streak = 0;
+  updateLives();
+  if (field) {
+    field.classList.add('wrong');
+    setTimeout(() => { field.classList.remove('wrong'); field.value = ''; if(field) field.focus(); }, 600);
+  }
+
+  const fb = document.getElementById('feedback-panel');
+  fb.className = 'feedback wrong-fb show';
+  fb.innerHTML = `<span class="feedback-icon">💭</span>
+    <div><strong>Not quite — try again!</strong><br>${sc.feedback_wrong}</div>`;
+
+  if (state.lives <= 0) {
+    state.answered = true;
+    fb.innerHTML = `<span class="feedback-icon">💭</span>
+      <div><strong>The answer was ${sc.answer}.</strong><br>${sc.feedback_wrong}</div>`;
+    showNextButton();
+  }
+}
+
+function showNextButton() {
+  const ap = document.getElementById('action-panel');
+  const isLast = state.current >= scenes.length - 1;
+  ap.innerHTML = `
+    <button class="btn btn-primary" onclick="nextScene()">
+      ${isLast ? '🏆 See My Results' : '➡️ Continue Mission'}
+    </button>
+  `;
+  // Restore lives if ran out mid-game but still questions left
+  if (state.lives <= 0 && !isLast) {
+    state.lives = 3;
+    updateLives();
+  }
+}
+
+function nextScene() {
+  state.current++;
+  if (state.current >= scenes.length) {
+    showResults();
+  } else {
+    renderScene(state.current);
+  }
+}
+
+// ═══════════════════════════════════════════════════════
+// RESULTS
+// ═══════════════════════════════════════════════════════
+function showResults() {
+  clearInterval(state.timerInterval);
+  updateProgress();
+
+  const pct = Math.round((state.correct / scenes.length) * 100);
+  let medal, rank, rankSub;
+  if (pct >= 90) { medal='🥇'; rank='Master Investigator!'; rankSub='Exceptional work, Jua. The Mara is safe thanks to you!'; }
+  else if (pct >= 70) { medal='🥈'; rank='Senior Investigator!'; rankSub='Great job! Your maths skills saved the day.'; }
+  else if (pct >= 50) { medal='🥉'; rank='Field Investigator'; rankSub='Good effort! Practise a bit more and you\'ll ace it next time.'; }
+  else { medal='🔭'; rank='Trainee Investigator'; rankSub='Keep practising — every great investigator starts somewhere!'; }
+
+  document.getElementById('medal').textContent = medal;
+  document.getElementById('rank-title').textContent = rank;
+  document.getElementById('rank-sub').textContent = rankSub;
+  document.getElementById('final-score').textContent = state.score;
+  document.getElementById('res-correct').textContent = `${state.correct}/${scenes.length}`;
+  document.getElementById('res-total').textContent = scenes.length;
+  document.getElementById('res-time').textContent = getTimeLeft();
+  document.getElementById('res-streak').textContent = `${state.bestStreak} 🔥`;
+
+  // Journal summary
+  const jou = document.getElementById('journal-summary');
+  jou.innerHTML = `
+    <div class="journal-title">📓 Jua's Field Journal</div>
+    <div class="journal-entry">
+      Today I helped the Mara rangers track <strong>wildebeest herds, giraffe families, and elephant medicine</strong> using mental maths.
+      I answered <strong>${state.correct} out of ${scenes.length}</strong> challenges correctly and earned <strong>${state.score} XP</strong>.
+      <br><br>
+      Skills practised: <strong>addition, subtraction, multiplication and division</strong> — all in my head! 🧠
+    </div>
+  `;
+
+  document.getElementById('progress-inner').style.width = '100%';
+  showScreen('screen-results');
+}
+</script>
+</body>
+</html>
